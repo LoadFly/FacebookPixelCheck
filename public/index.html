@@ -113,6 +113,8 @@
     <div class="container">
         <h1>Facebook Pixel 检查工具</h1>
         <h3>测试事件不入库</h3>
+
+
         <div class="input-group">
             <label for="pixelId">Pixel ID:</label>
             <input type="text" id="pixelId" placeholder="输入Pixel ID">
@@ -166,7 +168,7 @@
             checkButton.disabled = true;
             
             try {
-                const response = await fetch('http://localhost:3001/api/check-pixel', {
+                const response = await fetch('/api/check-pixel', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -205,7 +207,7 @@
         // 加载历史记录
         async function loadHistory() {
             try {
-                const response = await fetch('http://localhost:3001/api/history');
+                const response = await fetch('/api/history');
                 const data = await response.json();
                 
                 const historyList = document.getElementById('historyList');

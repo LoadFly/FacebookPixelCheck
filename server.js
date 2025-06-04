@@ -6,7 +6,8 @@ const path = require('path');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
 const app = express();
-const PORT = 3001;
+const config = require('./config');
+ const PORT = config.port;
 const HISTORY_FILE = 'check_history.log';
 
 // 中间件配置

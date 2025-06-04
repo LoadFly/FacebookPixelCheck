@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Pixel 检查工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1877f2;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h3 {
+            color: #4479be;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #1877f2;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #166fe5;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .history {
+            margin-top: 30px;
+        }
+
+        .history h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .history-item {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            border-left: 4px solid #1877f2;
+        }
+
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Facebook Pixel 检查工具</h1>
+        <h3>测试事件不入库</h3>
+        <div class="input-group">
+            <label for="pixelId">Pixel ID:</label>
+            <input type="text" id="pixelId" placeholder="输入Pixel ID">
+        </div>
+
+        <div class="input-group">
+            <label for="accessToken">Access Token:</label>
+            <input type="text" id="accessToken" placeholder="输入Access Token">
+
+            <div class="input-group" style="margin-top: 10px;">
+                <label style="display: inline-flex; align-items: center;">
+                    <input type="checkbox" id="useProxy" style="width: auto; margin-right: 8px;"> 使用代理
+                </label>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="testEventCode">Test Event Code:</label>
+            <input type="text" id="testEventCode" value="TEST79212" placeholder="输入Test Event Code">
+        </div>
+
+        <button onclick="checkPixel()" id="checkButton">检查</button>
+
+        <div id="status" class="status" style="display: none;"></div>
+
+        <div class="history">
+            <h2>历史记录</h2>
+            <ul id="historyList" class="history-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        // 检查Pixel和Token
+        async function checkPixel() {
+            const pixelId = document.getElementById('pixelId').value.trim();
+            const accessToken = document.getElementById('accessToken').value.trim();
+            const testEventCode = document.getElementById('testEventCode').value.trim();
+            const statusDiv = document.getElementById('status');
+            const checkButton = document.getElementById('checkButton');
+
+            if (!pixelId || !accessToken) {
+                showStatus('请输入Pixel ID和Access Token', false);
+                return;
+            }
+
+            if (testEventCode && !testEventCode.includes('TEST')) {
+                showStatus('Test Event Code 必须包含大写 "TEST"', false);
+                return;
+            }
+
+            checkButton.disabled = true;
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/check-pixel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        pixelId,
+                        accessToken,
+                        useProxy: document.getElementById('useProxy').checked,
+                        testEventCode
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus(data.message, true);
+                    loadHistory(); // 刷新历史记录
+                } else {
+                    showStatus(data.message || '验证失败', false);
+                }
+            } catch (error) {
+                showStatus('请求失败，请稍后重试', false);
+            } finally {
+                checkButton.disabled = false;
+            }
+        }
+
+        // 显示状态信息
+        function showStatus(message, isSuccess) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + (isSuccess ? 'success' : 'error');
+            statusDiv.style.display = 'block';
+        }
+
+        // 加载历史记录
+        async function loadHistory() {
+            try {
+                const response = await fetch('http://localhost:3001/api/history');
+                const data = await response.json();
+                
+                const historyList = document.getElementById('historyList');
+                historyList.innerHTML = '';
+                
+                data.pixels.forEach(pixel => {
+                    const li = document.createElement('li');
+                    li.className = 'history-item';
+                    li.textContent = pixel;
+                    historyList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('加载历史记录失败:', error);
+            }
+        }
+
+        // 页面加载时获取历史记录
+        window.onload = loadHistory;
+    </script>
+</body>
+</html>
